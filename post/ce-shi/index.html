@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1594949736461">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1594966897265">
 <link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
 
 
@@ -18,8 +18,8 @@
 
 
 
-    <meta name="description" content="##简介
-superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor是一个Python开发的通用的进程管理程序，可以管理和监控Linux上面的进程，能将一个普通的命令行进程变为后台daemon，并监控进程状..." />
+    <meta name="description" content="简介
+superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor是一个Python开发的通用的进程管理程序，可以管理和监控Linux上面的进程，能将一个普通的命令行进程变为后台daemon，并监控进程状态，..." />
     <meta name="keywords" content="" />
   </head>
   <body>
@@ -29,7 +29,7 @@ superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor�
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://fujianfei1991.github.io">
-        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1594949736461" class="site-logo">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1594966897265" class="site-logo">
         <h1 class="site-title">学习记录</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -95,8 +95,192 @@ superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor�
             <div class="post-date">2020-07-16</div>
             
             <div class="post-content" v-pre>
-              <p>##简介<br>
-superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor是一个Python开发的通用的进程管理程序，可以管理和监控Linux上面的进程，能将一个普通的命令行进程变为后台daemon，并监控进程状态，异常退出时能自动重启。不过同daemontools一样，它不能监控daemon进程</p>
+              <h2 id="简介">简介</h2>
+<p>superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor是一个Python开发的通用的进程管理程序，可以管理和监控Linux上面的进程，能将一个普通的命令行进程变为后台daemon，并监控进程状态，异常退出时能自动重启。不过同daemontools一样，它不能监控daemon进程</p>
+<h2 id="组件">组件</h2>
+<ul>
+<li>supervisord<br>
+主进程,负责管理进程的server，它会根据配置文件创建指定数量的应用程序的子进程，管理子进程的整个生命周期，对crash的进程重启，对进程变化发送事件通知等。同时内置web server和XML-RPC Interface，轻松实现进程管理。。该服务的配置文件在/etc/supervisor/supervisord.conf</li>
+<li>supervisorctl<br>
+客户端的命令行工具，提供一个类似shell的操作接口，通过它你可以连接到不同的supervisord进程上来管理它们各自的子程序，命令通过UNIX socket或者TCP来和服务通讯。用户通过命令行发送消息给supervisord，可以查看进程状态，加载配置文件，启停进程，查看进程标准输出和错误输出，远程操作等。服务端也可以要求客户端提供身份验证之后才能进行操作。</li>
+<li>web server<br>
+superviosr提供了web server功能，可通过web控制进程(需要设置[inet<em>http</em>server]配置项)。</li>
+<li>XML-RPC interface<br>
+XML-RPC接口， 就像HTTP提供WEB UI一样，用来控制supervisor和由它运行的程序。</li>
+</ul>
+<h2 id="安装">安装</h2>
+<p>当前环境 <code>CentOS Linux release 7.7.1908 (Core)</code><br>
+安装方法有多种：1、使用源码安装，2、使用yum安装，3、由于是用python写的，所以还提供一中 pip 安装的方式<br>
+​	1、源码安装</p>
+<pre><code class="language-sh">wget https://pypi.python.org/packages/source/s/supervisor/supervisor-3.1.3.tar.gz
+tar zxvf supervisor-3.1.3.tar.gz
+cd supervisor-3.1.3
+python setup.py install
+</code></pre>
+<p>​	2、yum安装</p>
+<pre><code class="language-sh">yum install -y supervisor
+</code></pre>
+<p>​	3、pip安装（我当前的python环境是2.7）</p>
+<pre><code class="language-sh">pip install supervisor
+</code></pre>
+<p>检查是否安装成功，执行如下命令，返回版本号即可</p>
+<pre><code class="language-sh">supervisord -v
+</code></pre>
+<h2 id="基础配置">基础配置</h2>
+<p>创建配置文件</p>
+<pre><code># echo_supervisord_conf &gt; /etc/supervisord.conf
+</code></pre>
+<p>基础配置文件一般情况下不需要更改，除了最后的 [include] 部分，其余保持默认即可</p>
+<h4 id="子进程配置文件">子进程配置文件</h4>
+<p>一般放在：<code>/etc/supervisord.d/</code> 这个目录下面，一个脚本对应一个配置文件<br>
+在 <code>/etc/supervisord.conf</code> 当中 [include] 默认没有开启，需要打开一下</p>
+<pre><code>. . .
+# 开启网页访问
+[inet_http_server]         ; inet (TCP) server disabled by default
+port=0.0.0.0:9001        ; (ip_address:port specifier, *:port for all iface)
+username=user              ; (default is no username (open server))
+password=123               ; (default is no password (open server))
+. . .
+# 这里需要根据自己的情况来设置
+[include]
+files = /etc/supervisord.d/*.conf
+</code></pre>
+<p>指定配置文件启动</p>
+<pre><code># supervisord -c /etc/supervisord.conf
+</code></pre>
+<h2 id="配置开机自启">配置开机自启</h2>
+<p>编辑服务文件</p>
+<pre><code class="language-sh"># vim /usr/lib/systemd/system/supervisord.service
+
+# 内容如下
+[Unit]
+Description=Supervisor daemon
+
+[Service]
+Type=forking
+PIDFile=/var/run/supervisord.pid
+ExecStart=/usr/bin/supervisord -c /etc/supervisord.conf
+ExecStop=/usr/bin/supervisorctl shutdown
+ExecReload=/usr/bin/supervisorctl reload
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>启动服务</p>
+<pre><code># systemctl enable supervisord
+</code></pre>
+<p>查看是否启动</p>
+<pre><code># systemctl is-enabled supervisord
+enabled
+</code></pre>
+<p>管理 <code>supervisor</code> 服务</p>
+<pre><code># systemctl stop supervisord
+# systemctl start supervisord
+# systemctl status supervisord
+# systemctl reload supervisord
+# systemctl restart supervisord
+</code></pre>
+<h2 id="子进程管理">子进程管理</h2>
+<p>一般放在：<code>/etc/supervisord.d/</code> 这个目录下面，一个脚本对应一个配置文件<br>
+** 配置说明 **</p>
+<pre><code>; 应用名称，必填
+[program:echo_time]
+; 进程执行前会切换到指定目录下执行，默认不切换，非必须
+directory = /tmp
+; 启动优先级，默认-1
+priority = -1
+; 子进程操作命令，最后带上完整路径
+command=sh /tmp/echo_time.sh
+;  子进程是否被自动启动
+autostart=true
+; 这个是设置子进程挂掉后自动重启的情况，有三个选项，false,unexpected和true。如果为false的时候，无论什么情况下，都不会被重新启动，如果为unexpected，只有当进程的退出码不在下面exitcodes里面定义的退出码的时候，才会被自动重启。当为true的时候，只要子进程挂掉，将会被无条件的重启
+autorestart=true
+; 子进程启动几秒后被认为启动成功
+startsecs=10
+; 子进程启动失败后，最大尝试重新启动次数
+startretries=3 
+; 子进程退出码，注意和上面的autorestart=unexpected 相对应，exitcodes里面定义的退出码是expected 的，关于这个子进程退出码还是需要再了解下
+exitcodes=0,2
+; 进程停止信号，可以为TERM, HUP, INT, QUIT, KILL, USR1, or USR2 等信号，默认为 TERM，当用设定的信号去干扰进程，退出码会被认为是expected，非必须设置
+stopsignal=QUIT
+; 当向子进程发送 stopsignal信号后，到系统返回信息给supervisor 所等待的最大时间，超过这个时间，supervisor会向该子进程发送一个强制 kill 的信号，默认 10 秒，非必须设置
+stopwaitsecs=10
+; 启动的用户
+user=root
+; 日志开启
+log_stdout=true
+; 日志错误开启
+log_stderr=true
+; 子进程日志
+logfile=/tmp/echo_time.log
+; 单日志文件最大的大小，默认是50M，当超过时会生成一个新的文件，设置为0时表示不限制大小
+logfile_maxbytes=1MB
+; 日志文件保持的数量，上面的日志文件超过限定时，就会生成一个新的文件，当文件数量大于限制数量时，最初的老文件会被新文件覆盖，文件数量将保持不变，当设置为0时，表示不限制文件的数量，默认为10，非必须设置
+logfile_backups=10
+ ; stdout日志文件最大的大小，属性同上
+stdout_logfile_maxbytes=20MB 
+; stdout 日志文件数量，属性同上
+stdout_logfile_backups=20 
+; stdout 日志文件位置
+stdout_logfile=/tmp/echo_time.stdout.log
+</code></pre>
+<h2 id="使用样例">使用样例</h2>
+<p>脚本文件 <code>/tmp/echo_time.sh</code><br>
+** 内容如下：**</p>
+<pre><code>#/bin/bash
+while true; do
+    echo `date + %Y-%m-%d,%H:%m:%s`
+    sleep 2
+done
+</code></pre>
+<p>在 <code>/etc/supervisor.d</code> 当中新增子进程配置文件 <code>echo_time.conf</code> , 内容如下</p>
+<pre><code>[program:echo_time]
+command=sh /tmp/echo_time.sh  ; 启动命令
+priority=999                ; the relative start priority (default 999)
+autostart=true              ; start at supervisord start (default: true)
+autorestart=true            ; retstart at unexpected quit (default: true)
+startsecs=10                ; number of secs prog must stay running (def. 10)
+startretries=3              ; max # of serial start failures (default 3)
+exitcodes=0,2               ; 'expected' exit codes for process (default 0,2)
+stopsignal=QUIT             ; signal used to kill process (default TERM)
+stopwaitsecs=10             ; max num secs to wait before SIGKILL (default 10)
+user=root                 ; setuid to this UNIX account to run the program
+log_stdout=true
+log_stderr=true             ; if true, log program stderr (def false)
+logfile=/tmp/echo_time.log
+logfile_maxbytes=1MB        ; max # logfile bytes b4 rotation (default 50MB)
+logfile_backups=10          ; # of logfile backups (default 10)
+stdout_logfile_maxbytes=20MB  ; stdout 日志文件大小，默认 50MB
+stdout_logfile_backups=20     ; stdout 日志文件备份数
+stdout_logfile=/tmp/echo_time.stdout.log
+</code></pre>
+<p>保存之后重新启动程序，加载配置信息</p>
+<pre><code># supervisorctl reread    # 重新读取配置
+# supervisorctl update   # 更新子进程
+</code></pre>
+<p>执行 <code>update</code> 后输出</p>
+<pre><code>echo_time: added process group
+</code></pre>
+<p>可以通过日志或者<code>supervisorctl status</code> 查看子进程运行情况</p>
+<pre><code># supervisorctl  status
+echo_time                        RUNNING   pid 5542, uptime 0:00:11
+</code></pre>
+<p>由于我这边启用了开机自启的服务，所以还可以执行 <code>systemctl status supervisord</code> 查看</p>
+<pre><code># systemctl status supervisord
+● supervisord.service - Supervisor daemon
+   Loaded: loaded (/usr/lib/systemd/system/supervisord.service; enabled; vendor preset: disabled)
+   Active: activating (auto-restart) (Result: exit-code) since Fri 2020-07-17 11:29:27 CST; 31s ago
+  Process: 5678 ExecStart=/bin/supervisord -c /etc/supervisord.conf (code=exited, status=2)
+   CGroup: /system.slice/supervisord.service
+           ├─ 5542 sh /tmp/echo_time.sh  # 此处就是子进程的PID
+           ├─ 5737 sleep 2
+           └─15349 /usr/bin/python /usr/bin/supervisord -c /etc/supervisord.conf
+</code></pre>
+<p>在网页当中也可以查看到 子进程的状态<br>
+<img src="https://fujianfei1991.github.io/post-images/1594966890823.png" alt="" loading="lazy"></p>
 
             </div>
             
