@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>ElK 安装使用 与 elasticsearch-php 扩展使用 | 学习记录</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1595237405789">
+<link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="简介
+mysql 在5.6以前，只有MySIAM支持全文检索，但是不支持索引，从5.6以后 InnoDB 开始支持全文检索，从5.7.6开始支持中文分词，但是正在在项目上应用的时候还是有很多问题，中文分词不准确，性能不高，数据量不大，因而采..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://fujianfei1991.github.io">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1595237405789" class="site-logo">
+        <h1 class="site-title">学习记录</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://fujianfei1991.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">ElK 安装使用 与 elasticsearch-php 扩展使用</h2>
+            <div class="post-date">2020-07-18</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="简介">简介</h2>
+<p><code>mysql</code> 在5.6以前，只有<code>MySIAM</code>支持全文检索，但是不支持索引，从5.6以后 <code>InnoDB</code> 开始支持全文检索，从5.7.6开始支持中文分词，但是正在在项目上应用的时候还是有很多问题，中文分词不准确，性能不高，数据量不大，因而采用 <code>elasticsearch</code> 这种全文检索插件<br>
+<code>Elasticsearch</code> 系列产品对照表</p>
+<pre><code>https://www.elastic.co/cn/support/matrix#matrix_compatibility
+</code></pre>
+<p>在<code>Elasticsearch</code> 当中没有表的概念，对应关系有另外的结构体，对照如下</p>
+<table>
+<thead>
+<tr>
+<th>关系型数据库（比如Mysql）</th>
+<th>非关系型数据库（Elasticsearch）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据库 Database</td>
+<td>索引 Index</td>
+</tr>
+<tr>
+<td>表 Table</td>
+<td>类型 Type</td>
+</tr>
+<tr>
+<td>数据行 Row</td>
+<td>文档 Document</td>
+</tr>
+<tr>
+<td>数据列 Column</td>
+<td>字段 Field</td>
+</tr>
+<tr>
+<td>约束 Schema</td>
+<td>映射 Mapping</td>
+</tr>
+</tbody>
+</table>
+<h4 id="原理参考">原理参考</h4>
+<pre><code>https://developer.51cto.com/art/201904/594615.htm
+https://www.cnblogs.com/dreamroute/p/8484457.html
+</code></pre>
+<h2 id="安装-elasticsearch">安装 <code>Elasticsearch</code></h2>
+<p><code>elasticsearch</code> 是基于 <code>java8</code> 以上的环境安装的，所以需要支持先安装 <code>java8</code></p>
+<pre><code># 安装java8
+$ yum install java-1.8.0.-openjdk* -y
+
+# 安装 elasticsearch
+$ wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.16.zip
+$ unzip elasticsearch-5.6.16.zip
+$ cd elasticsearch-5.6.16/
+
+# 因为elasticsearch不能在root账户下运行，所以的修改账户
+$ useradd  hadoop
+$ passwd    hadoop
+$ su hadoop
+
+// 目录权限也是有影响的，注意修改目录权限
+// 运行 elasticsearch
+// elasticsearch当前5.6版本的运行内存是2G，需要跟你自己的系统情况做调整
+$ vim config/jvm.options
+. . .    # 调整如下两个参数大小
+-Xms1g
+-Xmx1g
+. . .
+
+$ ./elasticsearch
+//默认是在端口9200上运行的，所以我们访问这个端口就会返回如下信息
+[root@localhost ~]# curl localhost:9200
+{
+  &quot;name&quot; : &quot;pUVGKF5&quot;,
+  &quot;cluster_name&quot; : &quot;elasticsearch&quot;,
+  &quot;cluster_uuid&quot; : &quot;YuHh_UCqSGCNn7El3U0DVQ&quot;,
+  &quot;version&quot; : {
+    &quot;number&quot; : &quot;5.6.16&quot;,
+    &quot;build_hash&quot; : &quot;3a740d1&quot;,
+    &quot;build_date&quot; : &quot;2019-03-13T15:33:36.565Z&quot;,
+    &quot;build_snapshot&quot; : false,
+    &quot;lucene_version&quot; : &quot;6.6.1&quot;
+  },
+  &quot;tagline&quot; : &quot;You Know, for Search&quot;
+}
+# 至此安装成功
+</code></pre>
+<h2 id="数据同步">数据同步</h2>
+<p>历史数据存放在 <code>MySQL</code> 当中就涉及到同步的问题<br>
+同步工具由官方提供的 <code>logstash</code> 与 淘宝的 <code>canal</code>，具体的差异这里不做描述了，我这里使用的是 <code>logstash</code></p>
+<h4 id="logstash安装">logstash安装</h4>
+<p>首先去官方下载对应软件，这个跟 <code>elasticsearch</code> 版本是对应的，所以下载的时候需要看下版本号</p>
+<pre><code>// logstash-5.6.16.zip 下载有点慢
+$ wget https://artifacts.elastic.co/downloads/logstash/logstash-5.6.16.zip 
+$ unzip logstash-5.6.16.zip
+// 可以转移到跟 elasticsearch 同级目录，我这里是放在 src目录下面
+$ mv logstash-5.6.16 /usr/local/logstash
+</code></pre>
+<h4 id="安装logstash-输入与输出的插件">安装logstash 输入与输出的插件</h4>
+<p>安装 <code>jdbc</code> 和 <code>elasticsearch</code> 插件，这两个插件分别连接 <code>MySQL</code> 与 <code>Elasticsearch</code></p>
+<pre><code>$ bin/logstash-plugin install logstash-input-jdbc   // 安装比较慢
+$ bin/logstash-plugin install logstash-output-elasticsearch
+</code></pre>
+<h4 id="安装-mysql-对接到-logstash-的驱动">安装 MySQL 对接到 logstash 的驱动</h4>
+<pre><code>$ wget https://cdn.mysql.com//Downloads/Connector-J/mysql-connector-java-5.1.46.zip
+$ unzip mysql-connector-java-5.1.46.zip
+// 放到 logstash 的config目录里面
+$ mv mysql-connector-java-5.1.46 /usr/local/logstash/config/mysql-connector-java
+</code></pre>
+<p>上面的插件都安装完成之后，需要生成 logstash 对应 <code>MySQL</code> 和 <code>Elasticsearch</code> 的配置文件，配置文件放置在 <code>logstash</code> 的配置文件目录 <code>config</code> 当中，文件名随便取，<code>sync_table.conf</code>，文件内容如下：<br>
+ps：这里面涉及到了两个表的信息，所以填写了两个配置信息</p>
+<pre><code>input {
+  jdbc {
+    jdbc_driver_library =&gt; &quot;./config/mysql-connector-java/mysql-connector-java-5.1.46-bin.jar&quot;
+    jdbc_driver_class =&gt; &quot;com.mysql.jdbc.Driver&quot;
+    jdbc_connection_string =&gt; &quot;jdbc:mysql://127.0.0.1:3306/yiren&quot;
+    jdbc_user =&gt; &quot;root&quot;
+    jdbc_password =&gt; &quot;e-line2019&quot;
+    schedule =&gt; &quot;* * * * *&quot;
+    statement =&gt; &quot;SELECT * FROM task_sales_source WHERE update_time &gt;= :sql_last_value&quot;
+    use_column_value =&gt; true
+    tracking_column_type =&gt; &quot;timestamp&quot;
+    tracking_column =&gt; &quot;update_time&quot;
+    clean_run =&gt; false
+    last_run_metadata_path =&gt; &quot;last_source_id.txt&quot;
+    type =&gt; &quot;task_sales_source&quot;
+    tags =&gt; &quot;task_sales_source&quot;
+  }
+  jdbc {
+    jdbc_driver_library =&gt; &quot;./config/mysql-connector-java/mysql-connector-java-5.1.46-bin.jar&quot;
+    jdbc_driver_class =&gt; &quot;com.mysql.jdbc.Driver&quot;
+    jdbc_connection_string =&gt; &quot;jdbc:mysql://127.0.0.1:3306/yiren&quot;
+    jdbc_user =&gt; &quot;root&quot;
+    jdbc_password =&gt; &quot;e-line2019&quot;
+    schedule =&gt; &quot;* * * * *&quot;
+    statement =&gt; &quot;SELECT * FROM task_source_extend WHERE update_time &gt;= :sql_last_value&quot;
+    use_column_value =&gt; true
+    tracking_column_type =&gt; &quot;timestamp&quot;
+    tracking_column =&gt; &quot;update_time&quot;
+    clean_run =&gt; false
+    last_run_metadata_path =&gt; &quot;last_extend_id.txt&quot;
+    type =&gt; &quot;task_source_extend&quot;
+    tags =&gt; &quot;task_source_extend&quot;
+  }
+}
+
+output {
+  if [type] == &quot;task_sales_source&quot;{
+        elasticsearch {
+            hosts =&gt; &quot;127.0.0.1:9200&quot;  
+            index =&gt; &quot;task_sales_source&quot;  
+            document_id =&gt; &quot;%{id}&quot;
+        }
+    }
+    if [type] == &quot;task_source_extend&quot;{
+        elasticsearch {
+            hosts =&gt; &quot;127.0.0.1:9200&quot;
+            index =&gt; &quot;task_source_extend&quot;  
+            document_id =&gt; &quot;%{id}&quot;
+        }
+    }
+  # elasticsearch {
+  #   hosts =&gt; [&quot;127.0.0.1:9200&quot;]
+  #   index =&gt; &quot;users&quot;
+  #   document_id =&gt; &quot;%{id}&quot;
+  #   document_type =&gt; &quot;users&quot;
+  # }
+  stdout {
+      codec =&gt; json_lines
+  }
+}
+</code></pre>
+<h4 id="以配置文件启动">以配置文件启动</h4>
+<pre><code>$ ./bin/logstash -f ./config/sync_table.conf
+</code></pre>
+<p>这样就可以看到如下的同步记录情况，默认是每分钟同步一次，可以根据自己的情况来设定同步时间<br>
+<img src="https://fujianfei1991.github.io/post-images/1595229302517.jpg" alt="" loading="lazy"></p>
+<h4 id="时区问题">时区问题</h4>
+<p>由于 <code>logstash</code> 本身采取的是 UTC时区，所以需要对获取的时间 +8 小时<br>
+在 <code>sync_table.conf</code> 增加如下配置</p>
+<pre><code># sync_table.conf
+. . .
+filter {
+  ruby { 
+    code =&gt; &quot;event.set('create_time', event.get('create_time').time.localtime + 8*60*60)&quot;
+  }
+  ruby { 
+    code =&gt; &quot;event.set('update_time', event.get('update_time').time.localtime + 8*60*60)&quot;
+  }
+}
+. . .
+</code></pre>
+<h2 id="kibana-使用">kibana 使用</h2>
+<p>借助 <code>kibana</code> 来实现对 <code>Elasticsearch</code> 的数据可视化查看</p>
+<h4 id="安装">安装</h4>
+<pre><code>$ wget wget https://artifacts.elastic.co/downloads/kibana/kibana-5.6.16-linux-x86_64.tar.gz
+# 对比数据包，返回hash值，与官网的包文件对比
+$ sha1sum kibana-5.6.16-linux-x86_64.tar.gz   
+$ tar -xzf kibana-5.6.16-linux-x86_64.tar.gz
+$ mv kibana-5.6.16-linux-x86_64 /usr/local/kibana
+$ cd /usr/local/kinaba
+</code></pre>
+<p>这里有一点，需要开启公网访问权限的时候，需要改一下配置文件<code>kibana.yml</code></p>
+<pre><code># config/kibana.yml
+. . .
+$ server.port: 5601
+$ server.host: &quot;0.0.0.0&quot;
+. . .
+</code></pre>
+<p>启动</p>
+<pre><code>$ ./bin/kibana
+</code></pre>
+<p>这样就可以在公网上访问<code>kibana</code> 的web管理界面</p>
+<h4 id="基础配置">基础配置</h4>
+<p>添加 <code>index</code> (添加索引，这里的索引对应的就是MySQL当中的库)<br>
+<code>Management</code> =&gt; <code>Index Patterns</code> =&gt; <code>Create Index Pattern</code> =&gt; <code>Index pattern</code> =&gt; <code>Time Filter field name</code> 选择 <code>I don't want to use ths Time Filter</code><br>
+查看 <code>Discover</code><br>
+<img src="https://fujianfei1991.github.io/post-images/1595230977809.jpg" alt="" loading="lazy"></p>
+<h4 id="至此elk全套的安装完成">** 至此，ELK全套的安装完成 **</h4>
+<h2 id="elasticsearch-php-安装使用"><code>Elasticsearch-php</code> 安装使用</h2>
+<p><code>elasticsearch</code> 官方有支持 PHP 的库，使用 <code>composer</code> 安装就可以直接使用，注意版本需要对照，并且基于PHP7 的环境<br>
+对照关系如下</p>
+<table>
+<thead>
+<tr>
+<th>Elasticsearch 版本</th>
+<th>Elasticsearch-PHP 分支</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&gt;= 6.0</td>
+<td><code>6.0</code></td>
+</tr>
+<tr>
+<td>&gt;= 5.0, ⇐ 6.0</td>
+<td><code>5.0</code></td>
+</tr>
+<tr>
+<td>&gt;= 1.0, ⇐ 5.0</td>
+<td><code>1.0</code>, <code>2.0</code></td>
+</tr>
+<tr>
+<td>⇐ 0.90.*</td>
+<td><code>0.4</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="composer-安装如下">composer 安装如下</h4>
+<pre><code>// 方式一
+//compooser.json文件添加如下，在composer update
+{
+    &quot;require&quot;: {
+        &quot;elasticsearch/elasticsearch&quot;: &quot;~6.0&quot;
+    }
+}
+
+//方式二
+//直接运行composer命令行安装
+$ composer require elasticsearch/elasticsearch 5.0
+</code></pre>
+<p>我这边当前是在 ThinkPHP5 框架里面安装的，安装结果就在 <code>vender</code> 里面<br>
+这个扩展里面有个函数 <code>filter_var</code> 是已经启用的，所以需要去掉，修改如下：</p>
+<pre><code class="language-php"># elasticsearch/elasticsearch/src/Elasticsearch/ClientBuilder.php
+. . .
+/**
+* @param string $host
+*
+* @return string
+*/
+private function prependMissingScheme($host)
+{
+    // if (!filter_var($host, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED)) {
+    //     $host = 'http://' . $host;
+    // }
+    if (empty(parse_url($host, PHP_URL_SCHEME))){
+        $host = 'http://' . $host;
+    }
+    return $host;
+}
+</code></pre>
+<p>使用样例：</p>
+<pre><code>. . .
+use Elasticsearch\ClientBuilder;
+. . .
+public function search(){
+    try{
+        $client = ClientBuilder::create()-&gt;build();
+        $params = [
+            'index' =&gt; 'task_source_extend',
+            'type' =&gt; 'task_source_extend',  
+        ];        
+        $results = $client-&gt;search($params);
+        var_dump(json_encode($results,true));
+    }catch(\Exception $e){
+        var_dump($e-&gt;getMessage());
+    }
+}
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://fujianfei1991.github.io/post/ce-shi/">
+                  <h3 class="post-title">
+                    supervisor 安装使用
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>
