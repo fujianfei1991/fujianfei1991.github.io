@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1595237718532">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1595323983794">
 <link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
 
 
@@ -29,7 +29,7 @@ mysql 在5.6以前，只有MySIAM支持全文检索，但是不支持索引，�
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://fujianfei1991.github.io">
-        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1595237718532" class="site-logo">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1595323983794" class="site-logo">
         <h1 class="site-title">学习记录</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -176,6 +176,35 @@ $ ./elasticsearch
   &quot;tagline&quot; : &quot;You Know, for Search&quot;
 }
 # 至此安装成功
+</code></pre>
+<blockquote>
+<p>Elasticsearch 在使用 supervisor 启动的时候，需要改一下配置文件</p>
+</blockquote>
+<pre><code># $ES_HOME/config/elasticsearch.yml
+network.host: 0.0.0.0
+http.port: 9200
+transport.host: localhost
+transport.tcp.port: 9300
+</code></pre>
+<p>另外 <code>supervisor</code> 里面的配置如下</p>
+<pre><code># elasticsearch.conf
+[program:elasticsearch]
+command=/usr/local/elasticsearch/bin/elasticsearch
+directory=/usr/local/elasticsearch/bin
+user=hadoop
+numprocs=1
+priority=1
+autostart=true
+startsecs=10
+satrtretries=3
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+stdout_logfile=/var/log/supervisor/elasticsearch.out.log
+stderr_logfile=/var/log/supervisor/elasticsearch.err.log
 </code></pre>
 <h2 id="数据同步">数据同步</h2>
 <p>历史数据存放在 <code>MySQL</code> 当中就涉及到同步的问题<br>

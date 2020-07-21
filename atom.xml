@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-07-20T09:35:20.625Z</updated>
+    <updated>2020-07-21T09:33:06.003Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
@@ -97,6 +97,35 @@ $ ./elasticsearch
   &quot;tagline&quot; : &quot;You Know, for Search&quot;
 }
 # 至此安装成功
+</code></pre>
+<blockquote>
+<p>Elasticsearch 在使用 supervisor 启动的时候，需要改一下配置文件</p>
+</blockquote>
+<pre><code># $ES_HOME/config/elasticsearch.yml
+network.host: 0.0.0.0
+http.port: 9200
+transport.host: localhost
+transport.tcp.port: 9300
+</code></pre>
+<p>另外 <code>supervisor</code> 里面的配置如下</p>
+<pre><code># elasticsearch.conf
+[program:elasticsearch]
+command=/usr/local/elasticsearch/bin/elasticsearch
+directory=/usr/local/elasticsearch/bin
+user=hadoop
+numprocs=1
+priority=1
+autostart=true
+startsecs=10
+satrtretries=3
+autorestart=true
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+stdout_logfile=/var/log/supervisor/elasticsearch.out.log
+stderr_logfile=/var/log/supervisor/elasticsearch.err.log
 </code></pre>
 <h2 id="数据同步">数据同步</h2>
 <p>历史数据存放在 <code>MySQL</code> 当中就涉及到同步的问题<br>
