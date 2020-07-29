@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Dockerfile 创建镜像 | 学习记录</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1595988139514">
+<link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+使用Dockerfile 来构建镜像的时候必须要基于一个基础镜像来构建，这也就是每个Dockerfile文件的开头必须是 FROM 指令的原因
+#Base image
+FROM centos
+
+设置docker主机访问网络
+# /etc/..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://fujianfei1991.github.io">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1595988139514" class="site-logo">
+        <h1 class="site-title">学习记录</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://fujianfei1991.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Dockerfile 创建镜像</h2>
+            <div class="post-date">2020-07-28</div>
+            
+            <div class="post-content" v-pre>
+              <blockquote>
+<p>使用Dockerfile 来构建镜像的时候必须要基于一个基础镜像来构建，这也就是每个Dockerfile文件的开头必须是 FROM 指令的原因<br>
+#Base image<br>
+FROM centos</p>
+</blockquote>
+<p>设置docker主机访问网络</p>
+<pre><code># /etc/docker/daemon.json
+&quot;dns&quot;: [&quot;100.100.2.136&quot;,&quot;100.100.2.138&quot;]
+
+# 上面的值在 /etc/resolv.conf当中查询
+</code></pre>
+<h2 id="当前使用nginx-来做样例做说明">当前使用nginx 来做样例做说明</h2>
+<p>在写 <code>Dockerfile</code>的时候有个前提就是必须会使用或者安装指定的软件等，不然是写不出来的<br>
+下面是<code>nginx</code>的<code>Dockerfile</code> 文件内容</p>
+<pre><code># 基础镜像
+FROM centos
+
+# 作者信息
+MAINTAINER 13260674703@163.com
+
+# 将安装目录解压到 &quot;/usr/local/src&quot; 目录，如果是&quot;.zip&quot;文件的话，ADD指令是无法解压的
+ADD nginx-1.16.1.tar.gz /usr/local/src
+
+# 安装相关依赖以及添加用户
+RUN yum install -y gcc gcc-c++ glibc make autoconf openssl openssl-devel 
+RUN yum install -y libxslt-devel -y gd gd-devel pcre pcre-devel
+RUN useradd -M -s /sbin/nologin nginx
+
+# 转到nginx目录
+WORKDIR /usr/local/src/nginx-1.16.1
+
+# 执行安装指令
+RUN ./configure --user=nginx --group=nginx --prefix=/usr/local/nginx --with-file-aio --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_xslt_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_auth_request_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module &amp;&amp; make &amp;&amp; make install
+
+# nginx是否以守护进程运行，是否让nignx运行于后台；调试时应该为off，使得所有信息直接输出在控制台
+RUN echo &quot;daemon off;&quot; &gt;&gt; /usr/local/nginx/conf/nginx.conf
+
+# 设置环境变量
+ENV PATH /usr/local/nginx/sbin:$PATH
+
+# 定义向外暴露的端口号,多个端口用空格做间隔,启动容器的时候&quot;-p&quot;需要使用此端向外端映射.
+EXPOSE 80
+
+# 定义控制台的运行命令
+CMD [&quot;nginx&quot;]
+</code></pre>
+<blockquote>
+<p>Dockerfile 其他详细命令参考：https://docs.docker.com/engine/reference/builder/</p>
+</blockquote>
+<h2 id="构建镜像">构建镜像</h2>
+<p>在<code>Dockerfile</code> 文件存放目录，执行构建操作</p>
+<blockquote>
+<p>最后的 . 代表本次执行的上下文路径</p>
+</blockquote>
+<pre><code>$ docker build -t nginx:test .
+</code></pre>
+<p><img src="https://fujianfei1991.github.io/post-images/1595987633967.jpg" alt="" loading="lazy"><br>
+以上显示，说明已经构建成功。<br>
+运行并查看结果<br>
+<img src="https://fujianfei1991.github.io/post-images/1595988078086.png" alt="" loading="lazy"><br>
+打开网页查看<br>
+<img src="https://fujianfei1991.github.io/post-images/1595988135680.png" alt="" loading="lazy"></p>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://fujianfei1991.github.io/post/docker-zai-centos7-an-zhuang-shi-yong/">
+                  <h3 class="post-title">
+                    Docker 在 Centos7 安装使用
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

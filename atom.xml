@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-07-21T09:33:06.003Z</updated>
+    <updated>2020-07-29T02:02:22.422Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
@@ -10,6 +10,238 @@
     <logo>https://fujianfei1991.github.io/images/avatar.png</logo>
     <icon>https://fujianfei1991.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, 学习记录</rights>
+    <entry>
+        <title type="html"><![CDATA[Dockerfile 创建镜像]]></title>
+        <id>https://fujianfei1991.github.io/post/dockerfile-chuang-jian-jing-xiang/</id>
+        <link href="https://fujianfei1991.github.io/post/dockerfile-chuang-jian-jing-xiang/">
+        </link>
+        <updated>2020-07-28T07:57:52.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>使用Dockerfile 来构建镜像的时候必须要基于一个基础镜像来构建，这也就是每个Dockerfile文件的开头必须是 FROM 指令的原因<br>
+#Base image<br>
+FROM centos</p>
+</blockquote>
+<p>设置docker主机访问网络</p>
+<pre><code># /etc/docker/daemon.json
+&quot;dns&quot;: [&quot;100.100.2.136&quot;,&quot;100.100.2.138&quot;]
+
+# 上面的值在 /etc/resolv.conf当中查询
+</code></pre>
+<h2 id="当前使用nginx-来做样例做说明">当前使用nginx 来做样例做说明</h2>
+<p>在写 <code>Dockerfile</code>的时候有个前提就是必须会使用或者安装指定的软件等，不然是写不出来的<br>
+下面是<code>nginx</code>的<code>Dockerfile</code> 文件内容</p>
+<pre><code># 基础镜像
+FROM centos
+
+# 作者信息
+MAINTAINER 13260674703@163.com
+
+# 将安装目录解压到 &quot;/usr/local/src&quot; 目录，如果是&quot;.zip&quot;文件的话，ADD指令是无法解压的
+ADD nginx-1.16.1.tar.gz /usr/local/src
+
+# 安装相关依赖以及添加用户
+RUN yum install -y gcc gcc-c++ glibc make autoconf openssl openssl-devel 
+RUN yum install -y libxslt-devel -y gd gd-devel pcre pcre-devel
+RUN useradd -M -s /sbin/nologin nginx
+
+# 转到nginx目录
+WORKDIR /usr/local/src/nginx-1.16.1
+
+# 执行安装指令
+RUN ./configure --user=nginx --group=nginx --prefix=/usr/local/nginx --with-file-aio --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_xslt_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_auth_request_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_stub_status_module &amp;&amp; make &amp;&amp; make install
+
+# nginx是否以守护进程运行，是否让nignx运行于后台；调试时应该为off，使得所有信息直接输出在控制台
+RUN echo &quot;daemon off;&quot; &gt;&gt; /usr/local/nginx/conf/nginx.conf
+
+# 设置环境变量
+ENV PATH /usr/local/nginx/sbin:$PATH
+
+# 定义向外暴露的端口号,多个端口用空格做间隔,启动容器的时候&quot;-p&quot;需要使用此端向外端映射.
+EXPOSE 80
+
+# 定义控制台的运行命令
+CMD [&quot;nginx&quot;]
+</code></pre>
+<blockquote>
+<p>Dockerfile 其他详细命令参考：https://docs.docker.com/engine/reference/builder/</p>
+</blockquote>
+<h2 id="构建镜像">构建镜像</h2>
+<p>在<code>Dockerfile</code> 文件存放目录，执行构建操作</p>
+<blockquote>
+<p>最后的 . 代表本次执行的上下文路径</p>
+</blockquote>
+<pre><code>$ docker build -t nginx:test .
+</code></pre>
+<p><img src="https://fujianfei1991.github.io/post-images/1595987633967.jpg" alt="" loading="lazy"><br>
+以上显示，说明已经构建成功。<br>
+运行并查看结果<br>
+<img src="https://fujianfei1991.github.io/post-images/1595988078086.png" alt="" loading="lazy"><br>
+打开网页查看<br>
+<img src="https://fujianfei1991.github.io/post-images/1595988135680.png" alt="" loading="lazy"></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Docker 在 Centos7 安装使用]]></title>
+        <id>https://fujianfei1991.github.io/post/docker-zai-centos7-an-zhuang-shi-yong/</id>
+        <link href="https://fujianfei1991.github.io/post/docker-zai-centos7-an-zhuang-shi-yong/">
+        </link>
+        <updated>2020-07-27T03:01:20.000Z</updated>
+        <content type="html"><![CDATA[<h4 id="前提条件">前提条件</h4>
+<p><code>Docker</code> 运行在 <code>Centos7</code> 上面，对系统内核是有要求的<br>
+要求系统为64位，系统内核版本位 <code>3.10</code> 以上</p>
+<pre><code># 查看内核版本
+[root@izbp1afvt32y9uri4c7x4tz ~]# uname -r
+3.10.0-1062.9.1.el7.x86_64
+</code></pre>
+<h2 id="安装">安装</h2>
+<p>** 安装依赖包 **</p>
+<pre><code>sudo yum install -y yum-utils device-mapper-persistent-data lvm2 
+</code></pre>
+<p>** 设置镜像源 **<br>
+这里的设置镜像源只是为了安装 <code>Docker</code> 来使用的，与后面的镜像仓库需要区分开来</p>
+<pre><code># 采用阿里云镜像源
+sudo yum-config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+</code></pre>
+<p>** 更新yum **</p>
+<pre><code>$ sudo yum update
+</code></pre>
+<p>** 查看可以安装的Docker版本 **</p>
+<pre><code># 如果没有设置上面的镜像源，有可能会没有任何包
+$ yum list docker-ce --showduplicates | sort -r
+</code></pre>
+<p>** 指定版本安装 **</p>
+<pre><code>$ yum install docker-ce-18.03.1.ce-1.el7.centos
+</code></pre>
+<p>** 查看版本 **</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# docker version
+Client:
+ Version:      18.03.1-ce
+ API version:  1.37
+ Go version:   go1.9.5
+ Git commit:   9ee9f40
+ Built:        Thu Apr 26 07:20:16 2018
+ OS/Arch:      linux/amd64
+ Experimental: false
+ Orchestrator: swarm
+Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?   # 这里是由于Docker没有运行才会出现这个提醒
+</code></pre>
+<h2 id="docker-用户设置"><code>Docker</code> 用户设置</h2>
+<p>由于<code>Docker</code> 需要运行在<code>root</code>或者<code>docker</code> 这个用户组中的用户下面，所以需要设置一下用户，毕竟使用root运行还是不太合适，考虑到安全性的问题<br>
+** 设置用户 **</p>
+<pre><code>$ useradd docker   # 添加用户docker
+$ passwd docker    # 设置用户docker的密码
+
+# 添加到docker用户组与查看
+$ sudo usermod -aG docker npoulton    # 将npoulton用户添加到docker用户组
+$ cat /etc/group | grep docker     # 查看操作是否成功
+docker:x:999:npoulton
+</code></pre>
+<h2 id="docker-操作命令"><code>Docker</code> 操作命令</h2>
+<pre><code># 启动docker
+$ sudo service docker start   # service 命令的用法
+$ sudo systemctl start docker     # systemctl 命令的用法
+</code></pre>
+<pre><code># 重启
+$ sudo service docker restart   # service 方式
+$ sudo systemctl restart docker   # systemctl 命令的方式
+</code></pre>
+<h2 id="修改镜像源">修改镜像源</h2>
+<p>新版的 Docker 使用 /etc/docker/daemon.json（Linux）<br>
+上面的 <code>daemon.json</code> 是镜像配置文件（没有该文件的话，请新建一个）：</p>
+<pre><code>{
+  &quot;registry-mirrors&quot;: [&quot;https://docker.mirrors.ustc.edu.cn&quot;]
+}
+</code></pre>
+<p>设置好之后需要重启一下服务即可</p>
+<pre><code>$ sudo service docker restart
+</code></pre>
+<h2 id="关于image镜像文件">关于<code>image</code>镜像文件</h2>
+<p>这里引用阮一峰微博上面的解释说明</p>
+<blockquote>
+<p>Docker 把应用程序及其依赖，打包在 image 文件里面。只有通过这个文件，才能生成 Docker 容<br>
+器。image 文件可以看作是容器的模板。Docker 根据 image 文件生成容器的实例。同一个 image<br>
+文件，可以生成多个同时运行的容器实例。<br>
+image 是二进制文件。实际开发中，一个 image 文件往往通过继承另一个 image 文件，加上一些<br>
+性化设置而生成。举例来说，你可以在 Ubuntu 的 image 基础上，往里面加入 Apache 服务器，形<br>
+成你的 image。<br>
+image 文件是通用的，一台机器的 image 文件拷贝到另一台机器，照样可以使用。一般来说，为了节<br>
+省时间，我们应该尽量使用别人制作好的 image 文件，而不是自己制作。即使要定制，也应该基于别<br>
+人的 image 文件进行加工，而不是从零开始制作。<br>
+为了方便共享，image 文件制作完成后，可以上传到网上的仓库。Docker 的官方仓库 Docker Hub<br>
+是最重要、最常用的 image 仓库。此外，出售自己制作的 image 文件也是可以的。<br>
+** 关于<code>image</code>的部分操作说明 **</p>
+</blockquote>
+<pre><code># 查找镜像，例如nginx镜像
+$ docker search nginx
+# 拉取镜像，例如nginx
+$ docker pull nginx
+# 本地镜像列表查看镜像，例如nginx
+$ docker image nginx
+# 列出本机所以 image 文件
+$ docker image ls
+# 删除 image 文件
+$ docker image rm [imageName]
+</code></pre>
+<h2 id="关于容器文件">关于容器文件</h2>
+<p>image 文件生成的容器实例，本身也是一个文件，称为容器文件。也就是说，一旦容器生成，就会同时存在两个文件： image 文件和容器文件。而且关闭容器并不会删除容器文件，只是容器停止运行而已。</p>
+<pre><code>$ docker ps -a         　　　　　//  列出所有的容器
+$ docker stop $IMAGE_ID   　 // 停止容器
+$ docker rm  $IMAGE_ID  　　// 删除容器
+$ docker ps      // 查看所有正在运行容器
+$ docker stop containerId    // containerId 是容器的ID
+$ docker ps -a     // 查看所有容器
+$ docker ps -a -q    // 查看所有容器ID
+$ docker stop $(docker ps -a -q)   // stop停止所有容器
+$ docker rm $(docker ps -a -q)     // remove删除所有容器
+</code></pre>
+<h2 id="基本样例">基本样例</h2>
+<blockquote>
+<p>以 <code>nginx</code> 为例</p>
+</blockquote>
+<pre><code># 先拉取nginx
+$ docker pull nginx
+# 镜像中查看
+$ docker images
+</code></pre>
+<p>** 使用nginx镜像开启nginx应用容器 **</p>
+<pre><code># 返回
+[root@izbp1afvt32y9uri4c7x4tz ~]# docker run -p 8090:80 -d nginx
+25579676e9ee014a1f54cc31816aa871462ba20e3923d86a46227543cae8cb00
+</code></pre>
+<p>当前容器运行起来之后，我们可以进入到容器当中，查看对应的文件运行以及配置情况</p>
+<pre><code># 进入到容器里面
+[root@izbp1afvt32y9uri4c7x4tz ~]# docker exec -it 25579676e9ee bash  
+root@25579676e9ee:/# 
+# 因为当前我的镜像当中没有安装vim之类的编辑器，所以无法直接查看文件配置信息
+# 查看配置信息
+root@25579676e9ee:/# cd /etc/nginx/conf.d/
+root@25579676e9ee:/etc/nginx/conf.d# ls
+default.conf
+</code></pre>
+<blockquote>
+<p>然后使用ctrl + p + q退出容器，使用exit的话会让容器停止<br>
+因为容器里面文件无法编辑，所以可以复制出来进行编辑<br>
+使用专用的复制命令将配置文件复制到宿主机，然后在宿主机进行编辑</p>
+</blockquote>
+<pre><code># 复制出来
+[root@localhost docker]# docker cp 25579676e9ee:/etc/nginx/conf.d/default.conf ./default.conf
+# 编辑好的文件再复制到容器当中
+[root@localhost docker]# docker cp ./default.conf 25579676e9ee:/etc/nginx/conf.d/default.conf
+</code></pre>
+<p>进入到容器中，重新载入nginx配置文件</p>
+<pre><code>[root@localhost docker]# docker exec -it 25579676e9ee bash
+root@3218b3ad4e47:/# service nginx reload
+[ ok ] Reloading nginx: nginx.
+root@3218b3ad4e47:/#
+</code></pre>
+<blockquote>
+<p>容器启动的时候会涉及到诸多的命令以及参数配置项，参考如下：<br>
+https://docs.docker.com/engine/reference/commandline/run/<br>
+在启动的时候还可以通过run命令的参数配置很多挂载信息，这里就不再详细说明了，可以参考如下连接：<br>
+https://www.cnblogs.com/saneri/p/11799865.html</p>
+</blockquote>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[ElK 安装使用 与 elasticsearch-php 扩展使用]]></title>
         <id>https://fujianfei1991.github.io/post/elasticsearch/</id>
