@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>iptables + ipset 屏蔽禁止国外IP访问 | 学习记录</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1596699992570">
+<link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="起初遇到这个问题是因为 freeswitch 盗打的出现，频繁的盗打影响呼叫中心的使用。这里很多盗打的IP来源就是国外的IP地址，那么禁止国外的IP地址就可以解决问题了
+
+ipset是iptables的扩展,它允许你创建 匹配整个地址集合的..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://fujianfei1991.github.io">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1596699992570" class="site-logo">
+        <h1 class="site-title">学习记录</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://fujianfei1991.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">iptables + ipset 屏蔽禁止国外IP访问</h2>
+            <div class="post-date">2020-07-31</div>
+            
+            <div class="post-content" v-pre>
+              <p>起初遇到这个问题是因为 <code>freeswitch</code> 盗打的出现，频繁的盗打影响呼叫中心的使用。这里很多盗打的IP来源就是国外的IP地址，那么禁止国外的IP地址就可以解决问题了</p>
+<blockquote>
+<p>ipset是iptables的扩展,它允许你创建 匹配整个地址集合的规则。而不像普通的iptables链只能单IP匹配, ip集合存储在带索引的数据结构中,这种结构即时集合比较大也可以进行高效的查找，除了一些常用的情况,比如阻止一些危险主机访问本机，从而减少系统资源占用或网络拥塞,IPsets也具备一些新防火墙设计方法,并简化了配置.官网：http://ipset.netfilter.org/</p>
+</blockquote>
+<p>这里就是利用<code>ipset</code>来将国内的IP收集起来，只开发国内的IP地址</p>
+<h2 id="安装-ipset">安装 IPSET</h2>
+<p>当前环境如下：</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /etc/redhat-release 
+CentOS Linux release 7.8.2003 (Core)
+
+$ yum install ipset     # 安装
+</code></pre>
+<h4 id="创建-ip集合">创建 IP集合</h4>
+<pre><code>$ ipset create mainland hash:net maxelem 65536
+mainland : 这个就是当前集合的名称
+hash : 表示以hash方式存储信息
+net :  指定可以往集合中添加IP段或者IP地址
+maxelem : 表示可以存储最大的条目数量，这里就是 65536
+</code></pre>
+<h4 id="编写脚本自动更新数据到-ip-集合当中">编写脚本自动更新数据到 IP 集合当中</h4>
+<p>保存在 <code>/home/mainland.sh</code></p>
+<pre><code>#!/usr/bin/env bash
+wget --no-check-certificate -O- 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | awk -F\| '/CN\|ipv4/ { printf(&quot;%s/%d\n&quot;, $4, 32-log($5)/log(2)) }' &gt; /home/mainland.txt
+ipset flush mainland
+while read ip; do
+    ipset add mainland $ip
+done &lt; /home/mainland.txt
+ipset save chnroute &gt; /home/mainland.conf
+</code></pre>
+<p>可以设置一个定时任务，不断的去更新IP集合</p>
+<h2 id="配置-iptables-限制访问">配置 <code>iptables</code> 限制访问</h2>
+<p>配置某个端口需要禁止国外访问的话，我们就需要在 <code>iptables</code> 当中禁止了端口的访问，并且针对 ipset 的集合开放接口，以 <code>8090</code> 端口为例</p>
+<pre><code>iptables -A INPUT -m set --match-set mainland src -p tcp --dport 8090 -j ACCEPT
+iptables -A INPUT -m set --match-set mainland src -p udp --dport 8090 -j ACCEPT
+iptables -A INPUT -p tcp --dport 8090 -j DROP
+iptables -A INPUT -p udp --dport 8090 -j DROP
+</code></pre>
+<p>保存之后，重载一下 <code>iptables</code> 让新规则生效</p>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://fujianfei1991.github.io/post/dockerfile-chuang-jian-jing-xiang/">
+                  <h3 class="post-title">
+                    Dockerfile 创建镜像
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

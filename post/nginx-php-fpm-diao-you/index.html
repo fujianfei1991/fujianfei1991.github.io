@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>nginx + php-fpm 调优 | 学习记录</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1596699992570">
+<link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="进程通信方式
+
+nginx 和 php-fpm 的进程间通信有两种方式
+A：基于 TCP 的，IP加端口的方式，可以跨服务器
+B：是 UNIX Domain Socket，不经过网络，只能用于 Nginx 跟 PHP-FPM 都在同一服务器..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://fujianfei1991.github.io">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1596699992570" class="site-logo">
+        <h1 class="site-title">学习记录</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://fujianfei1991.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">nginx + php-fpm 调优</h2>
+            <div class="post-date">2020-08-06</div>
+            
+            <div class="post-content" v-pre>
+              <h2 id="进程通信方式">进程通信方式</h2>
+<blockquote>
+<p>nginx 和 php-fpm 的进程间通信有两种方式<br>
+A：基于 TCP 的，IP加端口的方式，可以跨服务器<br>
+B：是 UNIX Domain Socket，不经过网络，只能用于 Nginx 跟 PHP-FPM 都在同一服务器的场景，具体使用哪种取决于nginx和php-fpm的配置</p>
+</blockquote>
+<pre><code># 方式A
+php-fpm.conf: listen = 127.0.0.1:9000
+nginx.conf: fastcgi_pass 127.0.0.1:9000;
+# 方式B
+php-fpm.conf: listen = /tmp/php-fpm.sock
+nginx.conf: fastcgi_pass unix:/tmp/php-fpm.sock;
+</code></pre>
+<p>由此可以看出，当使用单机的情况下，使用UNIX Domain Socket 的方式更好，涉及到多台机器转发的时候，使用TCP进行网络通信的方式才可以<br>
+UNIX Domain Socket 在面对高并发的的时候不太稳定，会出现大量的502错误，这里是由于内核的最大连接数导致的<br>
+错误信息如下：</p>
+<pre><code>connect() to unix:/tmp/php-cgi.sock failed (11: Resource temporarily unavailable) while connecting to upstream
+</code></pre>
+<h3 id="优化方法">优化方法</h3>
+<p>查看系统内核参数大小：</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /proc/sys/net/core/somaxconn
+128
+</code></pre>
+<p>根据自己的情况来调整内核参数</p>
+<pre><code># /etc/sysctl.conf
+net.unix.max_dgram_qlen = 4096
+net.core.netdev_max_backlog = 4096
+net.core.somaxconn = 4096
+</code></pre>
+<p>查看80端口允许连接数大小</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /proc/sys/net/core/somaxconn
+Netid State      Recv-Q Send-Q     Local Address:Port                    Peer Address:Port
+tcp   LISTEN     0      128                   *:80                                 *:*
+</code></pre>
+<p>修改 nginx  和php-fpm 的 backlog大小，nginx默认511</p>
+<pre><code># nginx.conf
+server{
+  listen 80 default backlog=1024;
+}
+# php-fpm.conf
+listen.backlog = 1024
+</code></pre>
+<p>调整之后 UNIX Domain Socket 在面对大量并发的时候也可以稳定运行了<br>
+关于 php-fpm 和 php配置的调整可以看下下面的文章</p>
+<blockquote>
+<p>https://juejin.im/post/6844903849132556296<br>
+https://learnku.com/articles/18782<br>
+https://blog.thinkphp.cn/843679</p>
+</blockquote>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://fujianfei1991.github.io/post/iptables-ipset-ping-bi-jin-zhi-guo-wai-ip-fang-wen/">
+                  <h3 class="post-title">
+                    iptables + ipset 屏蔽禁止国外IP访问
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

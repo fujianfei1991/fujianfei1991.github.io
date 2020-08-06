@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-07-29T02:02:22.422Z</updated>
+    <updated>2020-08-06T07:57:56.938Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
@@ -10,6 +10,109 @@
     <logo>https://fujianfei1991.github.io/images/avatar.png</logo>
     <icon>https://fujianfei1991.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, 学习记录</rights>
+    <entry>
+        <title type="html"><![CDATA[nginx + php-fpm 调优]]></title>
+        <id>https://fujianfei1991.github.io/post/nginx-php-fpm-diao-you/</id>
+        <link href="https://fujianfei1991.github.io/post/nginx-php-fpm-diao-you/">
+        </link>
+        <updated>2020-08-06T07:21:54.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="进程通信方式">进程通信方式</h2>
+<blockquote>
+<p>nginx 和 php-fpm 的进程间通信有两种方式<br>
+A：基于 TCP 的，IP加端口的方式，可以跨服务器<br>
+B：是 UNIX Domain Socket，不经过网络，只能用于 Nginx 跟 PHP-FPM 都在同一服务器的场景，具体使用哪种取决于nginx和php-fpm的配置</p>
+</blockquote>
+<pre><code># 方式A
+php-fpm.conf: listen = 127.0.0.1:9000
+nginx.conf: fastcgi_pass 127.0.0.1:9000;
+# 方式B
+php-fpm.conf: listen = /tmp/php-fpm.sock
+nginx.conf: fastcgi_pass unix:/tmp/php-fpm.sock;
+</code></pre>
+<p>由此可以看出，当使用单机的情况下，使用UNIX Domain Socket 的方式更好，涉及到多台机器转发的时候，使用TCP进行网络通信的方式才可以<br>
+UNIX Domain Socket 在面对高并发的的时候不太稳定，会出现大量的502错误，这里是由于内核的最大连接数导致的<br>
+错误信息如下：</p>
+<pre><code>connect() to unix:/tmp/php-cgi.sock failed (11: Resource temporarily unavailable) while connecting to upstream
+</code></pre>
+<h3 id="优化方法">优化方法</h3>
+<p>查看系统内核参数大小：</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /proc/sys/net/core/somaxconn
+128
+</code></pre>
+<p>根据自己的情况来调整内核参数</p>
+<pre><code># /etc/sysctl.conf
+net.unix.max_dgram_qlen = 4096
+net.core.netdev_max_backlog = 4096
+net.core.somaxconn = 4096
+</code></pre>
+<p>查看80端口允许连接数大小</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /proc/sys/net/core/somaxconn
+Netid State      Recv-Q Send-Q     Local Address:Port                    Peer Address:Port
+tcp   LISTEN     0      128                   *:80                                 *:*
+</code></pre>
+<p>修改 nginx  和php-fpm 的 backlog大小，nginx默认511</p>
+<pre><code># nginx.conf
+server{
+  listen 80 default backlog=1024;
+}
+# php-fpm.conf
+listen.backlog = 1024
+</code></pre>
+<p>调整之后 UNIX Domain Socket 在面对大量并发的时候也可以稳定运行了<br>
+关于 php-fpm 和 php配置的调整可以看下下面的文章</p>
+<blockquote>
+<p>https://juejin.im/post/6844903849132556296<br>
+https://learnku.com/articles/18782<br>
+https://blog.thinkphp.cn/843679</p>
+</blockquote>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[iptables + ipset 屏蔽禁止国外IP访问]]></title>
+        <id>https://fujianfei1991.github.io/post/iptables-ipset-ping-bi-jin-zhi-guo-wai-ip-fang-wen/</id>
+        <link href="https://fujianfei1991.github.io/post/iptables-ipset-ping-bi-jin-zhi-guo-wai-ip-fang-wen/">
+        </link>
+        <updated>2020-07-31T03:11:39.000Z</updated>
+        <content type="html"><![CDATA[<p>起初遇到这个问题是因为 <code>freeswitch</code> 盗打的出现，频繁的盗打影响呼叫中心的使用。这里很多盗打的IP来源就是国外的IP地址，那么禁止国外的IP地址就可以解决问题了</p>
+<blockquote>
+<p>ipset是iptables的扩展,它允许你创建 匹配整个地址集合的规则。而不像普通的iptables链只能单IP匹配, ip集合存储在带索引的数据结构中,这种结构即时集合比较大也可以进行高效的查找，除了一些常用的情况,比如阻止一些危险主机访问本机，从而减少系统资源占用或网络拥塞,IPsets也具备一些新防火墙设计方法,并简化了配置.官网：http://ipset.netfilter.org/</p>
+</blockquote>
+<p>这里就是利用<code>ipset</code>来将国内的IP收集起来，只开发国内的IP地址</p>
+<h2 id="安装-ipset">安装 IPSET</h2>
+<p>当前环境如下：</p>
+<pre><code>[root@izbp1afvt32y9uri4c7x4tz ~]# cat /etc/redhat-release 
+CentOS Linux release 7.8.2003 (Core)
+
+$ yum install ipset     # 安装
+</code></pre>
+<h4 id="创建-ip集合">创建 IP集合</h4>
+<pre><code>$ ipset create mainland hash:net maxelem 65536
+mainland : 这个就是当前集合的名称
+hash : 表示以hash方式存储信息
+net :  指定可以往集合中添加IP段或者IP地址
+maxelem : 表示可以存储最大的条目数量，这里就是 65536
+</code></pre>
+<h4 id="编写脚本自动更新数据到-ip-集合当中">编写脚本自动更新数据到 IP 集合当中</h4>
+<p>保存在 <code>/home/mainland.sh</code></p>
+<pre><code>#!/usr/bin/env bash
+wget --no-check-certificate -O- 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | awk -F\| '/CN\|ipv4/ { printf(&quot;%s/%d\n&quot;, $4, 32-log($5)/log(2)) }' &gt; /home/mainland.txt
+ipset flush mainland
+while read ip; do
+    ipset add mainland $ip
+done &lt; /home/mainland.txt
+ipset save chnroute &gt; /home/mainland.conf
+</code></pre>
+<p>可以设置一个定时任务，不断的去更新IP集合</p>
+<h2 id="配置-iptables-限制访问">配置 <code>iptables</code> 限制访问</h2>
+<p>配置某个端口需要禁止国外访问的话，我们就需要在 <code>iptables</code> 当中禁止了端口的访问，并且针对 ipset 的集合开放接口，以 <code>8090</code> 端口为例</p>
+<pre><code>iptables -A INPUT -m set --match-set mainland src -p tcp --dport 8090 -j ACCEPT
+iptables -A INPUT -m set --match-set mainland src -p udp --dport 8090 -j ACCEPT
+iptables -A INPUT -p tcp --dport 8090 -j DROP
+iptables -A INPUT -p udp --dport 8090 -j DROP
+</code></pre>
+<p>保存之后，重载一下 <code>iptables</code> 让新规则生效</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Dockerfile 创建镜像]]></title>
         <id>https://fujianfei1991.github.io/post/dockerfile-chuang-jian-jing-xiang/</id>
