@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-08-06T07:58:08.307Z</updated>
+    <updated>2020-08-13T01:50:40.647Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
@@ -869,6 +869,12 @@ echo_time                        RUNNING   pid 5542, uptime 0:00:11
 </code></pre>
 <p>在网页当中也可以查看到 子进程的状态<br>
 <img src="https://fujianfei1991.github.io/post-images/1594966890823.png" alt="" loading="lazy"></p>
+<h2 id="supervisor-定期重启指定进程">supervisor 定期重启指定进程</h2>
+<p>可以利用 <code>crontab</code> 来实现定期任务，设置如下：</p>
+<pre><code>## 假如每天早上6点重启一个进程 aaa，这里的aaa 就是配置在supervisor里面的进程名称
+0 6 * * *  supervisorctl -c /etc/supervisord.conf restart aaa
+</code></pre>
+<p>当对于某些会出现内存泄漏或连接不自动释放的进程时，我们可以使用以上方法进行定期重启，解决内存泄漏及释放连接数。</p>
 ]]></content>
     </entry>
     <entry>

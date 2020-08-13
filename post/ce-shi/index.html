@@ -8,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1596699992570">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1597283435560">
 <link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
 
 
@@ -29,7 +29,7 @@ superviosr是一个Linux/Unix系统上的进程监控工具，他/她upervisor�
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://fujianfei1991.github.io">
-        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1596699992570" class="site-logo">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1597283435560" class="site-logo">
         <h1 class="site-title">学习记录</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -281,6 +281,12 @@ echo_time                        RUNNING   pid 5542, uptime 0:00:11
 </code></pre>
 <p>在网页当中也可以查看到 子进程的状态<br>
 <img src="https://fujianfei1991.github.io/post-images/1594966890823.png" alt="" loading="lazy"></p>
+<h2 id="supervisor-定期重启指定进程">supervisor 定期重启指定进程</h2>
+<p>可以利用 <code>crontab</code> 来实现定期任务，设置如下：</p>
+<pre><code>## 假如每天早上6点重启一个进程 aaa，这里的aaa 就是配置在supervisor里面的进程名称
+0 6 * * *  supervisorctl -c /etc/supervisord.conf restart aaa
+</code></pre>
+<p>当对于某些会出现内存泄漏或连接不自动释放的进程时，我们可以使用以上方法进行定期重启，解决内存泄漏及释放连接数。</p>
 
             </div>
             
