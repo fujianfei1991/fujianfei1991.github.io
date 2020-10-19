@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>微信小程序蓝牙控制注意事项 | 学习记录</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://fujianfei1991.github.io/favicon.ico?v=1603088346048">
+<link rel="stylesheet" href="https://fujianfei1991.github.io/styles/main.css">
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
+
+
+    <meta name="description" content="
+注：需要手机先开启蓝牙才能使用
+
+1、关于指令问题
+A：超过20个字符的指令需要做分包处理
+B：发送的数据为16进制的buffer数据
+C：对于arrayBuffer的理可以看下如下文章 
+    [https://blog.csdn.n..." />
+    <meta name="keywords" content="" />
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://fujianfei1991.github.io">
+        <img src="https://fujianfei1991.github.io/images/avatar.png?v=1603088346048" class="site-logo">
+        <h1 class="site-title">学习记录</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      温故而知新
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://fujianfei1991.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">微信小程序蓝牙控制注意事项</h2>
+            <div class="post-date">2020-09-08</div>
+            
+            <div class="post-content" v-pre>
+              <blockquote>
+<p>注：需要手机先开启蓝牙才能使用</p>
+</blockquote>
+<h3 id="1-关于指令问题">1、关于指令问题</h3>
+<pre><code>A：超过20个字符的指令需要做分包处理
+B：发送的数据为16进制的buffer数据
+C：对于arrayBuffer的理可以看下如下文章 
+    [https://blog.csdn.net/hunhun1122/article/details/82995787] javascript ArrayBuffer浅析
+</code></pre>
+<h4 id="转码如下">转码如下</h4>
+<pre><code class="language-javascript">var hex = &quot;&lt;B452b989|1|0000008&gt;&quot;
+let val = &quot;&quot;
+for (let i = 0; i &lt; hex.length; i++) {
+    if (val === '') {
+        val = hex.charCodeAt(i).toString(16)
+    } else {
+        val += ',' + hex.charCodeAt(i).toString(16)
+    }
+}
+console.log(val)
+var typedArray = new Uint8Array(val.match(/[\da-f]{2}/gi).map(function (h) {
+    return parseInt(h, 16)
+}))
+console.log(typedArray)
+var buffer1 = typedArray.buffer
+// 这里的最后的buffer1 就是需要写到蓝牙设备里面的指令
+</code></pre>
+<h3 id="2-关于蓝牙设备mac地址的获取">2、关于蓝牙设备MAC地址的获取</h3>
+<p>分Android跟IOS两种情况<br>
+A：Android系统的微信小程序通过 <code>wx.getBluetoothDevices</code> 获取的 <code>deviceId</code> 就是设备的蓝牙MAC地址<br>
+B：苹果IOS系统的微信小程序通过 <code>wx.getBluetoothDevices</code>  获取的 <code>deviceId</code> 是UUID，这个时候就需要根据  <code>wx.getBluetoothDevices</code> 返回的 <code>advertisData</code> 来生成MAC地址，这个 <code>advertisData</code> 有时候是为空的，所以我们在保存设备信息的时候IOS系统下的 <code>deviceId</code> 也需要保存一份，使用 <code>advertisData</code> 转MAC的方式如下</p>
+<pre><code class="language-javascript">let list = res.devices
+for (var i = 0; i &lt; list.length; i++) {
+    if (list[i].advertisData != null) {//判断对象是否为null，advertisData不一定有
+        //重点 根据advertisData 取出mac进行拼接
+        let bf = list[i].advertisData.slice(2, 10);
+        let mac = Array.prototype.map.call(new Uint8Array(bf), x =&gt; ('00' + x.toString(16)).slice(-2)).join(':');
+        console.log(mac.toUpperCase());
+        //判断mac是否为服务器传入mac
+        if (mac.toUpperCase() == '3C:A3:08:BA:45:35') {
+            that.setData({
+                deviceId: list[i].deviceId
+            });
+            console.log('deviceId:' + that.data.deviceId);
+        }
+        console.log(list[i]);
+    }
+}
+</code></pre>
+
+            </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://fujianfei1991.github.io/post/nginx-php-fpm-diao-you/">
+                  <h3 class="post-title">
+                    nginx + php-fpm 调优
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+<script type="application/javascript">
+
+AOS.init();
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+
+
+  </body>
+</html>

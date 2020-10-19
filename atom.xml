@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-08-13T01:50:40.647Z</updated>
+    <updated>2020-10-19T06:24:26.995Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
@@ -10,6 +10,63 @@
     <logo>https://fujianfei1991.github.io/images/avatar.png</logo>
     <icon>https://fujianfei1991.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, 学习记录</rights>
+    <entry>
+        <title type="html"><![CDATA[微信小程序蓝牙控制注意事项]]></title>
+        <id>https://fujianfei1991.github.io/post/wei-xin-xiao-cheng-xu-lan-ya-kong-zhi/</id>
+        <link href="https://fujianfei1991.github.io/post/wei-xin-xiao-cheng-xu-lan-ya-kong-zhi/">
+        </link>
+        <updated>2020-09-08T07:55:39.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>注：需要手机先开启蓝牙才能使用</p>
+</blockquote>
+<h3 id="1-关于指令问题">1、关于指令问题</h3>
+<pre><code>A：超过20个字符的指令需要做分包处理
+B：发送的数据为16进制的buffer数据
+C：对于arrayBuffer的理可以看下如下文章 
+    [https://blog.csdn.net/hunhun1122/article/details/82995787] javascript ArrayBuffer浅析
+</code></pre>
+<h4 id="转码如下">转码如下</h4>
+<pre><code class="language-javascript">var hex = &quot;&lt;B452b989|1|0000008&gt;&quot;
+let val = &quot;&quot;
+for (let i = 0; i &lt; hex.length; i++) {
+    if (val === '') {
+        val = hex.charCodeAt(i).toString(16)
+    } else {
+        val += ',' + hex.charCodeAt(i).toString(16)
+    }
+}
+console.log(val)
+var typedArray = new Uint8Array(val.match(/[\da-f]{2}/gi).map(function (h) {
+    return parseInt(h, 16)
+}))
+console.log(typedArray)
+var buffer1 = typedArray.buffer
+// 这里的最后的buffer1 就是需要写到蓝牙设备里面的指令
+</code></pre>
+<h3 id="2-关于蓝牙设备mac地址的获取">2、关于蓝牙设备MAC地址的获取</h3>
+<p>分Android跟IOS两种情况<br>
+A：Android系统的微信小程序通过 <code>wx.getBluetoothDevices</code> 获取的 <code>deviceId</code> 就是设备的蓝牙MAC地址<br>
+B：苹果IOS系统的微信小程序通过 <code>wx.getBluetoothDevices</code>  获取的 <code>deviceId</code> 是UUID，这个时候就需要根据  <code>wx.getBluetoothDevices</code> 返回的 <code>advertisData</code> 来生成MAC地址，这个 <code>advertisData</code> 有时候是为空的，所以我们在保存设备信息的时候IOS系统下的 <code>deviceId</code> 也需要保存一份，使用 <code>advertisData</code> 转MAC的方式如下</p>
+<pre><code class="language-javascript">let list = res.devices
+for (var i = 0; i &lt; list.length; i++) {
+    if (list[i].advertisData != null) {//判断对象是否为null，advertisData不一定有
+        //重点 根据advertisData 取出mac进行拼接
+        let bf = list[i].advertisData.slice(2, 10);
+        let mac = Array.prototype.map.call(new Uint8Array(bf), x =&gt; ('00' + x.toString(16)).slice(-2)).join(':');
+        console.log(mac.toUpperCase());
+        //判断mac是否为服务器传入mac
+        if (mac.toUpperCase() == '3C:A3:08:BA:45:35') {
+            that.setData({
+                deviceId: list[i].deviceId
+            });
+            console.log('deviceId:' + that.data.deviceId);
+        }
+        console.log(list[i]);
+    }
+}
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[nginx + php-fpm 调优]]></title>
         <id>https://fujianfei1991.github.io/post/nginx-php-fpm-diao-you/</id>
