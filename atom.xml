@@ -2,14 +2,81 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://fujianfei1991.github.io</id>
     <title>学习记录</title>
-    <updated>2020-10-19T06:28:28.792Z</updated>
+    <updated>2022-02-08T13:22:01.116Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://fujianfei1991.github.io"/>
     <link rel="self" href="https://fujianfei1991.github.io/atom.xml"/>
     <subtitle>温故而知新</subtitle>
     <logo>https://fujianfei1991.github.io/images/avatar.png</logo>
     <icon>https://fujianfei1991.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2020, 学习记录</rights>
+    <rights>All rights reserved 2022, 学习记录</rights>
+    <entry>
+        <title type="html"><![CDATA[如何在一个github仓库存放多个项目]]></title>
+        <id>https://fujianfei1991.github.io/post/ru-he-zai-yi-ge-github-cang-ku-cun-fang-duo-ge-xiang-mu/</id>
+        <link href="https://fujianfei1991.github.io/post/ru-he-zai-yi-ge-github-cang-ku-cun-fang-duo-ge-xiang-mu/">
+        </link>
+        <updated>2020-10-22T07:35:20.000Z</updated>
+        <content type="html"><![CDATA[<p>最近做了一个项目，涉及到web端、后端、微信小程序、APP等多个程序，如果每个端都新起一个项目的话管理起来实在是费劲，遂有了下面的这段文字，记录一下操作方式</p>
+<h2 id="首先">首先</h2>
+<p>去github上面创建一个仓库，随你怎么建立，不做此处不做说明</p>
+<h2 id="本地项目a">本地项目A</h2>
+<p>我们在本地建立了一个项目A，如下：</p>
+<pre><code>$ mkdir a
+$ cd a
+$ touch a_file.txt
+# 初始化 git 
+$ git init
+$ git add .
+$ git commit -a -m &quot;a_file&quot;
+# 将本地仓库与远程仓库关联起来
+$ git remote add origin  https://github.com/username/repository_name.git
+# 注意这里的基础分支 master 
+$ git push -u origin master      
+</code></pre>
+<p>如果之前没有把用户信息添加进去的话就需要验证一下用户</p>
+<blockquote>
+<p>初次提交的时候需要设置用户名与邮箱<br>
+git config --global user.email &quot;email&quot;<br>
+git config --global user.name &quot;username&quot;<br>
+方法一：你可以去.git/config 文件里面添加一下你的github的用户信息</p>
+</blockquote>
+<pre><code>[remote &quot;origin&quot;]
+url  =  https://github.com/username/repository_name.git      # 修改前
+url  =  https://username:password@github.com/username/repository_name.git    # 修改后
+这里把用户名跟密码都补充上去
+</code></pre>
+<p>方法二：直接在提交的时候输入用户名密码，如下：</p>
+<pre><code>Username for 'https://github.com':    username
+Password for 'https://fujianfei1991@github.com':  password
+</code></pre>
+<p>鉴权搞定了之后再次去提交一下项目就可以了</p>
+<pre><code>$ git push -u origin master
+</code></pre>
+<p>到此项目A就搞定了，代码也提交到github上面去了，可以去验证一下</p>
+<p>接下来就是搞定项目B了</p>
+<h2 id="项目b">项目B</h2>
+<p>我们在十万八千里之外的一个电脑上面建立了一个项目B，如下：</p>
+<pre><code>$ mkdir b
+$ cd b
+$ touch b_file.txt
+$ git init    # 项目初始化
+$ git checkout --orphan test       # 这里有个新词   orphan  后面会说明的
+$ git add .
+$ git commit -a -m 'b分支的代码'
+# 将本地仓库与远程仓库关联起来
+$ git remote add origin  https://github.com/username/repository_name.git
+# 注意这里的基础分支 master 
+$ git push -u origin test:test        # 将本地的test分支提交到github上面的test分支
+</code></pre>
+<p>上面的 orphan 就是创建一个无历史的分支，跟创建普通分支不同的是，他不会根据默认的分支(master)来创建新的分支<br>
+此时，再去github上面查看的时候就会发现惊喜，master分支与test分支完全不一样，这样就实现了一个仓库管理多个项目的目的</p>
+<p>有些时候，你可能还需要对不同的项目再去创建多个分支，这个时候在本地创建新分支的时候就需要去根据原始分支来创建了</p>
+<pre><code>$ git checkout -b test_new test      # 根据test分支来创建新分支
+</code></pre>
+<p>一顿操作之后，再次提交，去github上面查看，这个时候test_new分支的内容就继承自test分支，是项目B的内容，而原来的master分支里面的就是项目A的内容</p>
+<p>Game Over</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[微信小程序蓝牙控制注意事项]]></title>
         <id>https://fujianfei1991.github.io/post/wei-xin-xiao-cheng-xu-lan-ya-kong-zhi/</id>
